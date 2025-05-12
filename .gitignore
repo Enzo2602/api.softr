@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Archivos de entorno local (NO subir a Git)
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de Vercel (si se generan localmente)
+.vercel/

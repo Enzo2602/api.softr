@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publicar Nueva Oferta de Empleo - Citijob</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #6B9080; /* Verde azulado aproximado del fondo de citijob.com.ar/publicacion */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinea arriba para formularios largos */
+            min-height: 100vh;
+        }
+
+        .form-container {
+            background-color: #ffffff; /* Fondo blanco para el contenedor del formulario */
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+            width: 100%;
+            max-width: 700px; /* Ancho máximo del formulario */
+            box-sizing: border-box;
+            margin-top: 20px; /* Margen superior */
+            margin-bottom: 20px; /* Margen inferior */
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-header .image-placeholder {
+            width: 100%;
+            height: 150px; /* Altura para la imagen de cabecera */
+            background-color: #e9ecef; /* Gris claro para el placeholder de la imagen */
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .form-header h2 {
+            color: #333;
+            font-size: 28px; /* Tamaño del título */
+            margin-bottom: 10px;
+        }
+
+        .form-header p {
+            color: #555;
+            font-size: 16px; /* Tamaño del texto introductorio */
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-of-type {
+            margin-bottom: 30px; /* Más espacio antes del botón */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600; /* Etiquetas un poco más gruesas */
+            color: #495057;
+            font-size: 15px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            color: #495057;
+            background-color: #f8f9fa; /* Fondo ligeramente gris para campos */
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #80bdff; /* Color de borde al enfocar (Bootstrap default) */
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Sombra al enfocar (Bootstrap default) */
+            background-color: #fff;
+        }
+
+        textarea {
+            min-height: 120px; /* Altura mínima para el área de texto */
+            resize: vertical; /* Permitir redimensionar verticalmente */
+        }
+
+        .required-asterisk {
+            color: red;
+            margin-left: 2px;
+        }
+
+        button[type="submit"] {
+            background-color: #FF7F50; /* Naranja (Coral) similar al de la imagen */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px; /* Tamaño de fuente del botón */
+            font-weight: bold;
+            display: block; /* Para que ocupe todo el ancho si se quiere */
+            width: 100%; /* Botón de ancho completo */
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #e66a40; /* Naranja un poco más oscuro al pasar el mouse */
+        }
+
+        .status-message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none; /* Oculto por defecto */
+        }
+
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        select[disabled] {
+            background-color: #e9ecef; /* Fondo gris para select desactivado */
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* Estilos para el contenedor de Rango Salarial si se implementa con dos inputs */
+        .salary-range-container {
+            display: flex;
+            gap: 10px; /* Espacio entre los inputs de rango salarial */
+        }
+
+        .salary-range-container .form-group {
+            flex: 1; /* Para que ambos inputs ocupen el mismo espacio */
+            margin-bottom: 0; /* Quitar margen inferior si están dentro del contenedor */
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="form-header">
+            <div class="image-placeholder">Espacio para Imagen de Cabecera (opcional)</div>
+            <h2>Publicar Nueva Oferta de Empleo</h2>
+            <p>Completa los siguientes campos para publicar tu búsqueda en Citijob. Los campos marcados con <span class="required-asterisk">*</span> son obligatorios.</p>
+        </div>
+
+        <form id="jobPostingForm">
+            <div class="form-group">
+                <label for="puestoVacante">Puesto Vacante <span class="required-asterisk">*</span></label>
+                <input type="text" id="puestoVacante" name="puestoVacante" required>
+            </div>
+
+            <div class="form-group">
+                <label for="areaPuesto">Área del Puesto <span class="required-asterisk">*</span></label>
+                <input type="text" id="areaPuesto" name="areaPuesto" placeholder="Ej: Comercial, Marketing, IT, etc." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="nivelExperiencia">Nivel de Experiencia <span class="required-asterisk">*</span></label>
+                <select id="nivelExperiencia" name="nivelExperiencia" required>
+                    <option value="" disabled selected>Seleccionar nivel</option>
+                    <option value="Junior">Junior</option>
+                    <option value="Semi-Senior">Semi-Senior</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Manager">Manager / Director</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="modalidadTrabajo">Modalidad de Trabajo <span class="required-asterisk">*</span></label>
+                <select id="modalidadTrabajo" name="modalidadTrabajo" required>
+                    <option value="" disabled selected>Seleccionar modalidad</option>
+                    <option value="Presencial">Presencial</option>
+                    <option value="Remoto">Remoto</option>
+                    <option value="Híbrido">Híbrido</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="pais">País <span class="required-asterisk">*</span></label>
+                <select id="pais" name="pais" required>
+                    <option value="" disabled selected>Seleccionar país</option>
+                    <option value="Argentina">Argentina</option>
+                    <option value="Otro">Otro País</option> <!-- Simplificado -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="provincia">Provincia / Estado <span class="required-asterisk">*</span></label>
+                <select id="provincia" name="provincia" required>
+                    <option value="" disabled selected>Seleccionar provincia (si aplica)</option>
+                    <option value="Buenos Aires">Buenos Aires</option>
+                    <option value="CABA">Ciudad Autónoma de Buenos Aires</option>
+                    <option value="Catamarca">Catamarca</option>
+                    <option value="Chaco">Chaco</option>
+                    <option value="Chubut">Chubut</option>
+                    <option value="Córdoba">Córdoba</option>
+                    <option value="Corrientes">Corrientes</option>
+                    <option value="Entre Ríos">Entre Ríos</option>
+                    <option value="Formosa">Formosa</option>
+                    <option value="Jujuy">Jujuy</option>
+                    <option value="La Pampa">La Pampa</option>
+                    <option value="La Rioja">La Rioja</option>
+                    <option value="Mendoza">Mendoza</option>
+                    <option value="Misiones">Misiones</option>
+                    <option value="Neuquén">Neuquén</option>
+                    <option value="Río Negro">Río Negro</option>
+                    <option value="Salta">Salta</option>
+                    <option value="San Juan">San Juan</option>
+                    <option value="San Luis">San Luis</option>
+                    <option value="Santa Cruz">Santa Cruz</option>
+                    <option value="Santa Fe">Santa Fe</option>
+                    <option value="Santiago del Estero">Santiago del Estero</option>
+                    <option value="Tierra del Fuego">Tierra del Fuego, Antártida e Islas del Atlántico Sur</option>
+                    <option value="Tucumán">Tucumán</option>
+                    <option value="No Aplica">No Aplica / Otro País</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="localidad">Localidad / Ciudad <span class="required-asterisk">*</span></label>
+                <input type="text" id="localidad" name="localidad" required>
+            </div>
+
+            <div class="form-group">
+                <label for="tipoContrato">Tipo de Contrato <span class="required-asterisk">*</span></label>
+                <select id="tipoContrato" name="tipoContrato" required>
+                    <option value="" disabled selected>Seleccionar tipo</option>
+                    <option value="Full-time">Full-time</option>
+                    <option value="Part-time">Part-time</option>
+                    <option value="Freelance">Freelance / Por Proyecto</option>
+                    <option value="Pasantía">Pasantía</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="rangoSalarial">Rango Salarial (Opcional)</label>
+                <input type="text" id="rangoSalarial" name="rangoSalarial" placeholder="Ej: 1000-1500 USD, A convenir, etc.">
+            </div>
+
+            <div class="form-group">
+                <label for="descripcionPuesto">Descripción del Puesto <span class="required-asterisk">*</span></label>
+                <textarea id="descripcionPuesto" name="descripcionPuesto" rows="8" required placeholder="Describe las responsabilidades, requisitos, beneficios, etc."></textarea>
+            </div>
+            
+            <button type="submit">Publicar Oferta</button>
+
+            <div id="statusMessage" class="status-message"></div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('jobPostingForm');
+            const statusMessageEl = document.getElementById('statusMessage');
+
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); 
+
+                const formData = new FormData(form);
+                const data = {};
+                formData.forEach((value, key) => data[key] = value);
+
+                // Obtener companyId de la URL (simulado aquí, deberás pasarlo realmente)
+                // Por ejemplo: si la URL es .../publicar-oferta.html?companyId=recXXXXXXXXXXXX
+                const urlParams = new URLSearchParams(window.location.search);
+                const companyId = urlParams.get('companyId');
+
+                if (!companyId) {
+                    statusMessageEl.textContent = 'Error: Falta el ID de la empresa. Asegúrate de que la URL sea correcta.';
+                    statusMessageEl.className = 'error';
+                    statusMessageEl.style.display = 'block';
+                    return;
+                }
+
+                console.log('Datos a enviar:', data);
+                console.log('Company ID:', companyId);
+
+                // --- INICIO DE SIMULACIÓN DE ENVÍO (REEMPLAZAR CON LLAMADA REAL A LA API) ---
+                // Aquí deberías hacer la llamada fetch a tu API de Vercel
+                // Esta simulación es solo para mostrar cómo manejar la respuesta
+                const API_URL = `/api/submit-job-posting?companyId=${companyId}`; // La API está en el mismo dominio
+                
+                statusMessageEl.textContent = 'Enviando publicación...';
+                statusMessageEl.className = ''; // Limpiar clases previas
+                statusMessageEl.style.display = 'block';
+
+                fetch(API_URL, { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; }).catch(() => { throw new Error(`Error ${response.status}: ${response.statusText}`); });
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    statusMessageEl.textContent = result.message || '¡Gracias! Tu búsqueda se publicará en un momento.';
+                    statusMessageEl.className = 'success';
+                    statusMessageEl.style.display = 'block';
+                    form.reset(); 
+
+                    setTimeout(() => {
+                        window.location.href = 'https://www.citijob.com.ar/micuenta-empresa'; 
+                    }, 3000); 
+                })
+                .catch(error => {
+                    console.error('Error al enviar el formulario:', error);
+                    statusMessageEl.textContent = error.error || error.message || 'Error al enviar la publicación. Inténtalo de nuevo.';
+                    statusMessageEl.className = 'error';
+                    statusMessageEl.style.display = 'block';
+                });
+            });
+        });
+
+        const paisSelect = document.getElementById('pais');
+        const provinciaSelect = document.getElementById('provincia');
+        const provinciaDefaultOptions = Array.from(provinciaSelect.options).map(option => ({value: option.value, text: option.text, disabled: option.disabled, selected: option.selected }) );
+
+        function actualizarEstadoProvincia() {
+            if (paisSelect.value === 'Argentina') {
+                provinciaSelect.disabled = false;
+                provinciaSelect.innerHTML = '';
+                provinciaDefaultOptions.forEach(optData => {
+                    const option = document.createElement('option');
+                    option.value = optData.value;
+                    option.textContent = optData.text;
+                    option.disabled = optData.disabled;
+                    option.selected = optData.selected;
+                    provinciaSelect.appendChild(option);
+                });
+                if (!provinciaSelect.value) {
+                    provinciaSelect.querySelector('option[value=""]').selected = true;
+                }
+
+            } else {
+                provinciaSelect.disabled = true;
+                provinciaSelect.innerHTML = '<option value="" selected>No aplica para este país</option>';
+            }
+        }
+
+        paisSelect.addEventListener('change', actualizarEstadoProvincia);
+        actualizarEstadoProvincia();
+
+    </script>
+
+</body>
+</html>
