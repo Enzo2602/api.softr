@@ -160,19 +160,18 @@ async function createJobPosting(req, res) {
         }
 
         const ofertaDataAirtable = {
-            [FIELD_ID_PUESTO_VACANTE]: puestoVacante,
-            [FIELD_ID_AREA_PUESTO]: areaPuesto, 
-            [FIELD_ID_NIVEL_EXPERIENCIA]: nivelExperiencia,
-            [FIELD_ID_MODALIDAD_TRABAJO]: modalidadTrabajo,
-            [FIELD_ID_PAIS]: pais,
-            [FIELD_ID_PROVINCIA]: provincia,
-            [FIELD_ID_UBICACION]: localidad, 
-            [FIELD_ID_TIPO_CONTRATO]: tipoContrato,
-            [FIELD_ID_RANGO_SALARIAL]: rangoSalarial,
-            [FIELD_ID_DESCRIPCION_PUESTO]: descripcionPuesto,
-            [FIELD_ID_EMPRESA_EN_OFERTAS]: [empresaAirtableId],
-            [FIELD_ID_FECHA_PUBLICACION]: hoy.toISOString().slice(0,10),
-            [FIELD_ID_TIPO_PUBLICACION_OFERTA]: tipoDePublicacionParaOferta
+            [process.env.FIELD_ID_PUESTO_VACANTE]: puestoVacante,
+            [process.env.FIELD_ID_AREA_PUESTO]: areaPuesto,
+            [process.env.FIELD_ID_NIVEL_EXPERIENCIA]: [nivelExperiencia], 
+            [process.env.FIELD_ID_MODALIDAD_TRABAJO]: [modalidadTrabajo],
+            [process.env.FIELD_ID_PAIS]: pais,
+            [process.env.FIELD_ID_PROVINCIA]: provincia,
+            [process.env.FIELD_ID_UBICACION]: localidad, 
+            [process.env.FIELD_ID_TIPO_CONTRATO]: tipoContrato,
+            [process.env.FIELD_ID_RANGO_SALARIAL]: rangoSalarial,
+            [process.env.FIELD_ID_DESCRIPCION_PUESTO]: descripcionPuesto,
+            [process.env.FIELD_ID_EMPRESA_EN_OFERTAS]: [empresaAirtableId], 
+            [process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA]: tipoDePublicacionParaOferta
         };
 
         console.log('Creando oferta en Airtable con datos:', ofertaDataAirtable);
