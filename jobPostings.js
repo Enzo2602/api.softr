@@ -26,7 +26,12 @@ const {
     FIELD_ID_EMPRESA_PLAN_ACTUAL, 
     FIELD_ID_EMPRESA_FECHA_VENCIMIENTO, 
     FIELD_ID_AVISOS_USADOS_SUSCRIPCION, 
-    FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK 
+    FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK,
+    FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS,
+    FIELD_ID_SUSCRIPCIONES_ESTADO,
+    FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES,
+    FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION,
+    FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS
 } = process.env;
 
 let base;
@@ -63,7 +68,10 @@ async function createJobPosting(req, res) {
         FIELD_ID_EMPRESA_EN_OFERTAS, FIELD_ID_FECHA_PUBLICACION, FIELD_ID_TIPO_PUBLICACION_OFERTA,
         FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA, FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP,
         FIELD_ID_EMPRESA_PLAN_ACTUAL, FIELD_ID_EMPRESA_FECHA_VENCIMIENTO,
-        FIELD_ID_AVISOS_USADOS_SUSCRIPCION, FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK 
+        FIELD_ID_AVISOS_USADOS_SUSCRIPCION, FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK,
+        FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS, FIELD_ID_SUSCRIPCIONES_ESTADO,
+        FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES, FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION,
+        FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS
     ];
 
     if (requiredEnvVars.some(v => !v)) {
@@ -119,17 +127,32 @@ async function createJobPosting(req, res) {
             tipoDePublicacionParaOferta = 'Gratis';
             camposEmpresaActualizar[FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] = true;
             console.log('Permiso: Publicación gratuita disponible.');
-        } else if (planActual && avisosPagadosDisponibles > 0 && (!fechaVencimiento || fechaVencimiento >= hoy)) {
-            puedePublicar = true;
-            tipoDePublicacionParaOferta = 'Pagada';
-            console.log(`Permiso: Publicación pagada disponible (${planActual}). Avisos restantes: ${avisosPagadosDisponibles}`);
         } else {
-            console.log('No tiene permisos para publicar.');
-            let motivo = 'No tienes publicaciones gratuitas ni avisos pagados disponibles.';
-            if (publicacionGratuitaUsada && planActual && avisosPagadosDisponibles <=0) motivo = 'Has agotado tus avisos pagados para el plan actual.';
-            if (publicacionGratuitaUsada && planActual && fechaVencimiento && fechaVencimiento < hoy) motivo = 'Tu plan de suscripción ha vencido.';
-            if (publicacionGratuitaUsada && !planActual) motivo = 'No tienes un plan de suscripción activo.';
-            return res.status(403).json({ error: `No se puede publicar. ${motivo}` });
+            const filterFormula = `AND(
+                {${FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
+                {${FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
+                {${FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
+                IS_AFTER({${FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
+            )`;
+
+            try {
+                const suscripcionRecords = await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
+                    filterByFormula: filterFormula,
+                    maxRecords: 1, // Solo necesitamos una suscripción válida
+                    fields: [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
+                }).firstPage();
+
+                if (suscripcionRecords && suscripcionRecords.length > 0) {
+                    const suscripcionValida = suscripcionRecords[0];
+                    const avisosUsadosActual = suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
+                    puedePublicar = true;
+                    tipoDePublicacionParaOferta = 'Pagada';
+                    console.log(`Permiso: Publicación pagada disponible. Avisos restantes: ${suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES)}`);
+                }
+            } catch (error) {
+                console.error('Error buscando suscripción activa:', error);
+                // No bloqueamos la respuesta aquí, simplemente no podrá publicar pagado
+            }
         }
 
         if (!puedePublicar) {
@@ -172,29 +195,37 @@ async function createJobPosting(req, res) {
         }
 
         if (tipoDePublicacionParaOferta === 'Pagada') {
-            const activeSubscriptionLinks = empresaRecord.fields[FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK];
-            if (activeSubscriptionLinks && activeSubscriptionLinks.length > 0) {
-                const activeSubscriptionRecordId = activeSubscriptionLinks[0];
-                try {
-                    console.log(`Actualizando suscripción ${activeSubscriptionRecordId} por publicación pagada.`);
-                    const subscriptionRecord = await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).find(activeSubscriptionRecordId);
-                    const avisosUsadosActual = subscriptionRecord.fields[FIELD_ID_AVISOS_USADOS_SUSCRIPCION] || 0;
+            const filterFormula = `AND(
+                {${FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
+                {${FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
+                {${FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
+                IS_AFTER({${FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
+            )`;
+
+            try {
+                const suscripcionRecords = await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
+                    filterByFormula: filterFormula,
+                    maxRecords: 1, // Solo necesitamos una suscripción válida
+                    fields: [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
+                }).firstPage();
+
+                if (suscripcionRecords && suscripcionRecords.length > 0) {
+                    const suscripcionValida = suscripcionRecords[0];
+                    const avisosUsadosActual = suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
                     const nuevosAvisosUsados = avisosUsadosActual + 1;
 
                     await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).update([
                         {
-                            id: activeSubscriptionRecordId,
+                            id: suscripcionValida.id,
                             fields: {
-                                [FIELD_ID_AVISOS_USADOS_SUSCRIPCION]: nuevosAvisosUsados
+                                [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS]: nuevosAvisosUsados
                             }
                         }
                     ]);
-                    console.log(`Suscripción ${activeSubscriptionRecordId} actualizada. Avisos usados: ${nuevosAvisosUsados}`);
-                } catch (suscripcionError) {
-                    console.error(`Error al actualizar la suscripción ${activeSubscriptionRecordId}:`, suscripcionError);
+                    console.log(`Suscripción ${suscripcionValida.id} actualizada. Avisos usados: ${nuevosAvisosUsados}`);
                 }
-            } else {
-                console.warn(`Publicación pagada para empresa ${empresaAirtableId}, pero no se encontró link a suscripción activa. No se descontó aviso.`);
+            } catch (suscripcionError) {
+                console.error(`Error al actualizar la suscripción:`, suscripcionError);
             }
         }
 
