@@ -19,7 +19,6 @@ const {
     FIELD_ID_RANGO_SALARIAL,
     FIELD_ID_DESCRIPCION_PUESTO,
     FIELD_ID_EMPRESA_EN_OFERTAS, 
-    FIELD_ID_FECHA_PUBLICACION,
     FIELD_ID_TIPO_PUBLICACION_OFERTA, 
     FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA, 
     FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP, 
@@ -60,23 +59,45 @@ async function createJobPosting(req, res) {
         return res.status(500).json({ error: error.message });
     }
 
-    const requiredEnvVars = [
-        AIRTABLE_EMPRESAS_TABLE_ID, AIRTABLE_OFERTAS_TABLE_ID, AIRTABLE_SUSCRIPCIONES_TABLE_ID, 
-        FIELD_ID_PUESTO_VACANTE, FIELD_ID_AREA_PUESTO, FIELD_ID_NIVEL_EXPERIENCIA,
-        FIELD_ID_MODALIDAD_TRABAJO, FIELD_ID_PAIS, FIELD_ID_PROVINCIA, FIELD_ID_UBICACION,
-        FIELD_ID_TIPO_CONTRATO, FIELD_ID_RANGO_SALARIAL, FIELD_ID_DESCRIPCION_PUESTO,
-        FIELD_ID_EMPRESA_EN_OFERTAS, FIELD_ID_FECHA_PUBLICACION, FIELD_ID_TIPO_PUBLICACION_OFERTA,
-        FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA, FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP,
-        FIELD_ID_EMPRESA_PLAN_ACTUAL, FIELD_ID_EMPRESA_FECHA_VENCIMIENTO,
-        FIELD_ID_AVISOS_USADOS_SUSCRIPCION, FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK,
-        FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS, FIELD_ID_SUSCRIPCIONES_ESTADO,
-        FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES, FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION,
-        FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS
-    ];
+    const envVarNames = {
+        AIRTABLE_EMPRESAS_TABLE_ID: process.env.AIRTABLE_EMPRESAS_TABLE_ID,
+        AIRTABLE_OFERTAS_TABLE_ID: process.env.AIRTABLE_OFERTAS_TABLE_ID,
+        AIRTABLE_SUSCRIPCIONES_TABLE_ID: process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID,
+        FIELD_ID_PUESTO_VACANTE: process.env.FIELD_ID_PUESTO_VACANTE,
+        FIELD_ID_AREA_PUESTO: process.env.FIELD_ID_AREA_PUESTO,
+        FIELD_ID_NIVEL_EXPERIENCIA: process.env.FIELD_ID_NIVEL_EXPERIENCIA,
+        FIELD_ID_MODALIDAD_TRABAJO: process.env.FIELD_ID_MODALIDAD_TRABAJO,
+        FIELD_ID_PAIS: process.env.FIELD_ID_PAIS,
+        FIELD_ID_PROVINCIA: process.env.FIELD_ID_PROVINCIA,
+        FIELD_ID_UBICACION: process.env.FIELD_ID_UBICACION,
+        FIELD_ID_TIPO_CONTRATO: process.env.FIELD_ID_TIPO_CONTRATO,
+        FIELD_ID_RANGO_SALARIAL: process.env.FIELD_ID_RANGO_SALARIAL,
+        FIELD_ID_DESCRIPCION_PUESTO: process.env.FIELD_ID_DESCRIPCION_PUESTO,
+        FIELD_ID_EMPRESA_EN_OFERTAS: process.env.FIELD_ID_EMPRESA_EN_OFERTAS,
+        FIELD_ID_TIPO_PUBLICACION_OFERTA: process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA,
+        FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA: process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA,
+        FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP: process.env.FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP, 
+        FIELD_ID_EMPRESA_PLAN_ACTUAL: process.env.FIELD_ID_EMPRESA_PLAN_ACTUAL, 
+        FIELD_ID_EMPRESA_FECHA_VENCIMIENTO: process.env.FIELD_ID_EMPRESA_FECHA_VENCIMIENTO, 
+        FIELD_ID_AVISOS_USADOS_SUSCRIPCION: process.env.FIELD_ID_AVISOS_USADOS_SUSCRIPCION, 
+        FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK: process.env.FIELD_ID_EMPRESA_SUSCRIPCION_ACTIVA_LINK,
+        FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS: process.env.FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS,
+        FIELD_ID_SUSCRIPCIONES_ESTADO: process.env.FIELD_ID_SUSCRIPCIONES_ESTADO,
+        FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES: process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES,
+        FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION: process.env.FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION,
+        FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS: process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS
+    };
 
-    if (requiredEnvVars.some(v => !v)) {
-        console.error('Error: Faltan una o más variables de entorno para IDs de tablas/campos de Airtable.');
-        return res.status(500).json({ error: 'Configuración del servidor incompleta. Faltan IDs de Airtable.' });
+    const missingVars = Object.entries(envVarNames)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+    if (missingVars.length > 0) {
+        console.error('Error: Faltan las siguientes variables de entorno para IDs de Airtable:', missingVars.join(', '));
+        return res.status(500).json({
+            error: 'Configuración del servidor incompleta. Faltan IDs de Airtable.',
+            missing_variables: missingVars
+        });
     }
 
     const { 
@@ -92,8 +113,8 @@ async function createJobPosting(req, res) {
     }
 
     try {
-        console.log(`Verificando empresa ID: ${companyRecordId} en tabla ${AIRTABLE_EMPRESAS_TABLE_ID}`);
-        const empresaRecords = await base(AIRTABLE_EMPRESAS_TABLE_ID).select({
+        console.log(`Verificando empresa ID: ${companyRecordId} en tabla ${process.env.AIRTABLE_EMPRESAS_TABLE_ID}`);
+        const empresaRecords = await base(process.env.AIRTABLE_EMPRESAS_TABLE_ID).select({
             filterByFormula: `RECORD_ID() = '${companyRecordId}'`,
             maxRecords: 1
         }).firstPage();
@@ -106,10 +127,10 @@ async function createJobPosting(req, res) {
 
         console.log('Datos de la empresa:', empresaRecord.fields);
 
-        const publicacionGratuitaUsada = empresaRecord.fields[FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] || false;
-        const planActual = empresaRecord.fields[FIELD_ID_EMPRESA_PLAN_ACTUAL] ? empresaRecord.fields[FIELD_ID_EMPRESA_PLAN_ACTUAL][0] : null;
-        const avisosPagadosDisponibles = empresaRecord.fields[FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP] || 0;
-        const fechaVencimientoString = empresaRecord.fields[FIELD_ID_EMPRESA_FECHA_VENCIMIENTO] ? empresaRecord.fields[FIELD_ID_EMPRESA_FECHA_VENCIMIENTO][0] : null;
+        const publicacionGratuitaUsada = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] || false;
+        const planActual = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PLAN_ACTUAL] ? empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PLAN_ACTUAL][0] : null;
+        const avisosPagadosDisponibles = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP] || 0;
+        const fechaVencimientoString = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_FECHA_VENCIMIENTO] ? empresaRecord.fields[process.env.FIELD_ID_EMPRESA_FECHA_VENCIMIENTO][0] : null;
         const hoy = new Date();
         let fechaVencimiento = null;
         if (fechaVencimientoString) {
@@ -125,29 +146,29 @@ async function createJobPosting(req, res) {
         if (!publicacionGratuitaUsada) {
             puedePublicar = true;
             tipoDePublicacionParaOferta = 'Gratis';
-            camposEmpresaActualizar[FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] = true;
+            camposEmpresaActualizar[process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] = true;
             console.log('Permiso: Publicación gratuita disponible.');
         } else {
             const filterFormula = `AND(
-                {${FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
-                {${FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
-                {${FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
-                IS_AFTER({${FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
+                {${process.env.FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
+                {${process.env.FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
+                {${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
+                IS_AFTER({${process.env.FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
             )`;
 
             try {
-                const suscripcionRecords = await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
+                const suscripcionRecords = await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
                     filterByFormula: filterFormula,
                     maxRecords: 1, // Solo necesitamos una suscripción válida
-                    fields: [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
+                    fields: [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
                 }).firstPage();
 
                 if (suscripcionRecords && suscripcionRecords.length > 0) {
                     const suscripcionValida = suscripcionRecords[0];
-                    const avisosUsadosActual = suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
+                    const avisosUsadosActual = suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
                     puedePublicar = true;
                     tipoDePublicacionParaOferta = 'Pagada';
-                    console.log(`Permiso: Publicación pagada disponible. Avisos restantes: ${suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES)}`);
+                    console.log(`Permiso: Publicación pagada disponible. Avisos restantes: ${suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES)}`);
                 }
             } catch (error) {
                 console.error('Error buscando suscripción activa:', error);
@@ -175,7 +196,7 @@ async function createJobPosting(req, res) {
         };
 
         console.log('Creando oferta en Airtable con datos:', ofertaDataAirtable);
-        const nuevasOfertas = await base(AIRTABLE_OFERTAS_TABLE_ID).create([
+        const nuevasOfertas = await base(process.env.AIRTABLE_OFERTAS_TABLE_ID).create([
             { fields: ofertaDataAirtable }
         ]);
 
@@ -187,7 +208,7 @@ async function createJobPosting(req, res) {
 
         if (tipoDePublicacionParaOferta === 'Gratis' && Object.keys(camposEmpresaActualizar).length > 0) {
             console.log(`Actualizando empresa ${empresaAirtableId} con campos:`, camposEmpresaActualizar);
-            await base(AIRTABLE_EMPRESAS_TABLE_ID).update([
+            await base(process.env.AIRTABLE_EMPRESAS_TABLE_ID).update([
                 { id: empresaAirtableId, fields: camposEmpresaActualizar }
             ]);
             console.log('Empresa actualizada por publicación gratuita.');
@@ -195,29 +216,29 @@ async function createJobPosting(req, res) {
 
         if (tipoDePublicacionParaOferta === 'Pagada') {
             const filterFormula = `AND(
-                {${FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
-                {${FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
-                {${FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
-                IS_AFTER({${FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
+                {${process.env.FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
+                {${process.env.FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
+                {${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
+                IS_AFTER({${process.env.FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
             )`;
 
             try {
-                const suscripcionRecords = await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
+                const suscripcionRecords = await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
                     filterByFormula: filterFormula,
                     maxRecords: 1, // Solo necesitamos una suscripción válida
-                    fields: [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
+                    fields: [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
                 }).firstPage();
 
                 if (suscripcionRecords && suscripcionRecords.length > 0) {
                     const suscripcionValida = suscripcionRecords[0];
-                    const avisosUsadosActual = suscripcionValida.get(FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
+                    const avisosUsadosActual = suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
                     const nuevosAvisosUsados = avisosUsadosActual + 1;
 
-                    await base(AIRTABLE_SUSCRIPCIONES_TABLE_ID).update([
+                    await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).update([
                         {
                             id: suscripcionValida.id,
                             fields: {
-                                [FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS]: nuevosAvisosUsados
+                                [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS]: nuevosAvisosUsados
                             }
                         }
                     ]);
