@@ -50,8 +50,6 @@ function getAirtableBase() {
  * Maneja la creación de una nueva oferta de empleo.
  */
 async function createJobPosting(req, res) {
-    console.log('createJobPosting_INIT - req.query:', JSON.stringify(req.query));
-    console.log('createJobPosting_INIT - req.body:', JSON.stringify(req.body));
     console.log('Solicitud para crear oferta:', req.body);
     console.log('Company ID de query params:', req.query.companyId);
 
@@ -189,24 +187,22 @@ async function createJobPosting(req, res) {
         // Campo País aislado
         if (pais) ofertaDataAirtable[process.env.FIELD_ID_PAIS] = pais;
 
-        // // TEMPORALMENTE COMENTADO PARA PRUEBA DE AISLAMIENTO
-        // if (areaPuesto) ofertaDataAirtable[process.env.FIELD_ID_AREA_PUESTO] = areaPuesto;
-        // if (descripcionPuesto) ofertaDataAirtable[process.env.FIELD_ID_DESCRIPCION_PUESTO] = descripcionPuesto;
-        // if (tipoDePublicacionParaOferta) ofertaDataAirtable[process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA] = tipoDePublicacionParaOferta;
-        // if (localidad) ofertaDataAirtable[process.env.FIELD_ID_UBICACION] = localidad; 
+        if (areaPuesto) ofertaDataAirtable[process.env.FIELD_ID_AREA_PUESTO] = areaPuesto;
+        if (nivelExperiencia) {
+            ofertaDataAirtable[process.env.FIELD_ID_NIVEL_EXPERIENCIA] = Array.isArray(nivelExperiencia) ? nivelExperiencia : [nivelExperiencia];
+        }
+        if (modalidadTrabajo) {
+            ofertaDataAirtable[process.env.FIELD_ID_MODALIDAD_TRABAJO] = Array.isArray(modalidadTrabajo) ? modalidadTrabajo : [modalidadTrabajo];
+        }
+        if (provincia && provincia.trim() !== '' && provincia !== 'No aplica para este país') {
+            ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = provincia;
+        }
+        if (localidad) ofertaDataAirtable[process.env.FIELD_ID_UBICACION] = localidad;
+        if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = tipoContrato;
+        if (descripcionPuesto) ofertaDataAirtable[process.env.FIELD_ID_DESCRIPCION_PUESTO] = descripcionPuesto;
+        if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
 
-        // // Campos de selección (siempre como array si tienen valor)
-        // if (nivelExperiencia) ofertaDataAirtable[process.env.FIELD_ID_NIVEL_EXPERIENCIA] = [nivelExperiencia];
-        // if (modalidadTrabajo) ofertaDataAirtable[process.env.FIELD_ID_MODALIDAD_TRABAJO] = [modalidadTrabajo];
-        // if (provincia && provincia !== 'No aplica para este país' && provincia !== '') {
-        //     ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = provincia;
-        // }
-        // if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = tipoContrato;
-
-        // // Campo opcional de texto
-        // if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
-
-        console.log('Creando oferta en Airtable con datos (AISLAMIENTO):', JSON.stringify(ofertaDataAirtable));
+        console.log('Creando oferta en Airtable con datos:', JSON.stringify(ofertaDataAirtable));
         const nuevasOfertas = await base(process.env.AIRTABLE_OFERTAS_TABLE_ID).create([
             { fields: ofertaDataAirtable }
         ]);

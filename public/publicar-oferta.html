@@ -187,24 +187,22 @@
             
             <div class="form-group">
                 <label for="nivelExperiencia">Nivel de Experiencia <span class="required-asterisk">*</span></label>
-                <select id="nivelExperiencia" name="nivelExperiencia" required>
-                    <option value="" disabled selected>Seleccionar nivel</option>
-                    <option value="Sin experiencia">Sin experiencia</option>
-                    <option value="- de 1 año de experiencia">- de 1 año de experiencia</option>
+                <select id="nivelExperiencia" name="nivelExperiencia" multiple required>
                     <option value="1-2 años de experiencia">1-2 años de experiencia</option>
+                    <option value="- de 1 año de experiencia">- de 1 año de experiencia</option>
                     <option value="3-5 años de experiencia">3-5 años de experiencia</option>
-                    <!-- Si tienes más opciones en Airtable para 'Nivel de Experiencia', añádelas aquí -->
+                    <option value="+5 años de experiencia">+5 años de experiencia</option>
+                    <option value="Sin experiencia">Sin experiencia</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="modalidadTrabajo">Modalidad de Trabajo <span class="required-asterisk">*</span></label>
-                <select id="modalidadTrabajo" name="modalidadTrabajo" required>
-                    <option value="" disabled selected>Seleccionar modalidad</option>
-                    <option value="Freelancer">Freelancer</option>
-                    <option value="Presencial">Presencial</option>
+                <select id="modalidadTrabajo" name="modalidadTrabajo" multiple required>
                     <option value="Remoto">Remoto</option>
+                    <option value="Presencial">Presencial</option>
                     <option value="Híbrido">Híbrido</option>
+                    <option value="Freelancer">Freelancer</option>
                 </select>
             </div>
 
@@ -257,18 +255,24 @@
             <div class="form-group">
                 <label for="tipoContrato">Tipo de Contrato <span class="required-asterisk">*</span></label>
                 <select id="tipoContrato" name="tipoContrato" required>
-                    <option value="" disabled selected>Seleccionar tipo</option>
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Freelance">Freelance / Por Proyecto</option>
-                    <option value="Pasantía">Pasantía</option>
-                    <option value="Otro">Otro</option>
+                    <option value="" disabled selected>Seleccionar tipo de contrato</option>
+                    <option value="Indeterminado">Indeterminado</option>
+                    <option value="Eventual">Eventual</option>
+                    <option value="Plazo Fijo">Plazo Fijo</option>
+                    <option value="Por Temporada">Por Temporada</option>
+                    <option value="Suplencia">Suplencia</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="rangoSalarial">Rango Salarial (Opcional)</label>
-                <input type="text" id="rangoSalarial" name="rangoSalarial" placeholder="Ej: 1000-1500 USD, A convenir, etc.">
+                <select id="rangoSalarial" name="rangoSalarial">
+                    <option value="" selected>Seleccionar rango (opcional)</option>
+                    <option value="$500.000 a $800.000">$500.000 a $800.000</option>
+                    <option value="$900.000 a $1.500.000">$900.000 a $1.500.000</option>
+                    <option value="Mas de $1.500.000">Mas de $1.500.000</option>
+                    <option value="A convenir">A convenir</option>
+                </select>
             </div>
 
             <div class="form-group">
