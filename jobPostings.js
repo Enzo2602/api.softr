@@ -50,6 +50,8 @@ function getAirtableBase() {
  * Maneja la creación de una nueva oferta de empleo.
  */
 async function createJobPosting(req, res) {
+    console.log('createJobPosting_INIT - req.query:', JSON.stringify(req.query));
+    console.log('createJobPosting_INIT - req.body:', JSON.stringify(req.body));
     console.log('Solicitud para crear oferta:', req.body);
     console.log('Company ID de query params:', req.query.companyId);
 
@@ -204,7 +206,7 @@ async function createJobPosting(req, res) {
         // // Campo opcional de texto
         // if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
 
-        console.log('Creando oferta en Airtable con datos:', ofertaDataAirtable);
+        console.log('Creando oferta en Airtable con datos (AISLAMIENTO):', JSON.stringify(ofertaDataAirtable));
         const nuevasOfertas = await base(process.env.AIRTABLE_OFERTAS_TABLE_ID).create([
             { fields: ofertaDataAirtable }
         ]);
