@@ -191,11 +191,11 @@ async function createJobPosting(req, res) {
         // Campos de selección (siempre como array si tienen valor)
         if (nivelExperiencia) ofertaDataAirtable[process.env.FIELD_ID_NIVEL_EXPERIENCIA] = [nivelExperiencia];
         if (modalidadTrabajo) ofertaDataAirtable[process.env.FIELD_ID_MODALIDAD_TRABAJO] = [modalidadTrabajo];
-        if (pais) ofertaDataAirtable[process.env.FIELD_ID_PAIS] = [pais];
+        if (pais) ofertaDataAirtable[process.env.FIELD_ID_PAIS] = pais;
         if (provincia && provincia !== 'No aplica para este país' && provincia !== '') {
-            ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = [provincia];
+            ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = provincia;
         }
-        if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = [tipoContrato];
+        if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = tipoContrato;
 
         // Campo opcional de texto
         if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
