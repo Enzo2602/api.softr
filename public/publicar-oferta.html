@@ -189,12 +189,11 @@
                 <label for="nivelExperiencia">Nivel de Experiencia <span class="required-asterisk">*</span></label>
                 <select id="nivelExperiencia" name="nivelExperiencia" required>
                     <option value="" disabled selected>Seleccionar nivel</option>
-                    <option value="Junior">Junior</option>
-                    <option value="Semi-Senior">Semi-Senior</option>
-                    <option value="Senior">Senior</option>
-                    <option value="Lead">Lead</option>
-                    <option value="Manager">Manager / Director</option>
-                    <option value="Otro">Otro</option>
+                    <option value="Sin experiencia">Sin experiencia</option>
+                    <option value="- de 1 año de experiencia">- de 1 año de experiencia</option>
+                    <option value="1-2 años de experiencia">1-2 años de experiencia</option>
+                    <option value="3-5 años de experiencia">3-5 años de experiencia</option>
+                    <!-- Si tienes más opciones en Airtable para 'Nivel de Experiencia', añádelas aquí -->
                 </select>
             </div>
 
@@ -202,6 +201,7 @@
                 <label for="modalidadTrabajo">Modalidad de Trabajo <span class="required-asterisk">*</span></label>
                 <select id="modalidadTrabajo" name="modalidadTrabajo" required>
                     <option value="" disabled selected>Seleccionar modalidad</option>
+                    <option value="Freelancer">Freelancer</option>
                     <option value="Presencial">Presencial</option>
                     <option value="Remoto">Remoto</option>
                     <option value="Híbrido">Híbrido</option>
