@@ -182,17 +182,23 @@ async function createJobPosting(req, res) {
         const ofertaDataAirtable = {
             [process.env.FIELD_ID_PUESTO_VACANTE]: puestoVacante,
             [process.env.FIELD_ID_AREA_PUESTO]: areaPuesto,
-            [process.env.FIELD_ID_NIVEL_EXPERIENCIA]: [nivelExperiencia], 
-            [process.env.FIELD_ID_MODALIDAD_TRABAJO]: [modalidadTrabajo],
-            [process.env.FIELD_ID_PAIS]: pais,
-            [process.env.FIELD_ID_PROVINCIA]: provincia,
-            [process.env.FIELD_ID_UBICACION]: localidad, 
-            [process.env.FIELD_ID_TIPO_CONTRATO]: tipoContrato,
-            [process.env.FIELD_ID_RANGO_SALARIAL]: rangoSalarial,
             [process.env.FIELD_ID_DESCRIPCION_PUESTO]: descripcionPuesto,
-            [process.env.FIELD_ID_EMPRESA_EN_OFERTAS]: [empresaAirtableId], 
-            [process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA]: tipoDePublicacionParaOferta
+            [process.env.FIELD_ID_EMPRESA_EN_OFERTAS]: [empresaAirtableId],
+            [process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA]: tipoDePublicacionParaOferta,
+            [process.env.FIELD_ID_UBICACION]: localidad // Asumimos que localidad siempre viene
         };
+
+        // Campos de selección (siempre como array si tienen valor)
+        if (nivelExperiencia) ofertaDataAirtable[process.env.FIELD_ID_NIVEL_EXPERIENCIA] = [nivelExperiencia];
+        if (modalidadTrabajo) ofertaDataAirtable[process.env.FIELD_ID_MODALIDAD_TRABAJO] = [modalidadTrabajo];
+        if (pais) ofertaDataAirtable[process.env.FIELD_ID_PAIS] = [pais];
+        if (provincia && provincia !== 'No aplica para este país' && provincia !== '') {
+            ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = [provincia];
+        }
+        if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = [tipoContrato];
+
+        // Campo opcional de texto
+        if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
 
         console.log('Creando oferta en Airtable con datos:', ofertaDataAirtable);
         const nuevasOfertas = await base(process.env.AIRTABLE_OFERTAS_TABLE_ID).create([
