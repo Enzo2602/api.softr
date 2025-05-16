@@ -235,8 +235,25 @@ async function createJobPosting(req, res) {
                 console.error(`[createJobPosting] Error al actualizar la tabla ${infoParaActualizar.tabla} para el record ${infoParaActualizar.recordId}:`, updateError);
                 // La oferta ya fue creada. Se loguea el fallo de actualización, pero se continúa para enviar respuesta de éxito.
             }
+        } else if (tipoDePublicacionParaOferta === 'Gratuita' && infoParaActualizar.tabla && infoParaActualizar.recordId && infoParaActualizar.fieldToUpdate) {
+            try {
+                console.log(`[createJobPosting] Actualizando tabla 'Empresas' por publicación gratuita: Record ID: ${infoParaActualizar.recordId}, Campo: ${infoParaActualizar.fieldToUpdate}, Nuevo Valor: ${infoParaActualizar.newValue}`);
+                await base(infoParaActualizar.tabla).update([
+                    {
+                        id: infoParaActualizar.recordId,
+                        fields: {
+                            [infoParaActualizar.fieldToUpdate]: infoParaActualizar.newValue
+                        }
+                    }
+                ]);
+                console.log(`[createJobPosting] Actualización de estado de publicación gratuita exitosa.`);
+            } catch (updateError) {
+                console.error(`[createJobPosting] Error al actualizar el estado de publicación gratuita en 'Empresas' para el record ${infoParaActualizar.recordId}:`, updateError);
+                // La oferta ya fue creada. Se loguea el fallo de actualización, pero se continúa.
+            }
         } else if (tipoDePublicacionParaOferta === 'Gratuita') {
-            console.log(`[createJobPosting] Publicación gratuita utilizada. La actualización del estado en 'Empresas' es manejada por automatización en Airtable.`);
+            // Fallback por si infoParaActualizar no está completa, aunque no debería pasar.
+            console.warn('[createJobPosting] Faltó información en infoParaActualizar para el tipo Gratuita. No se pudo actualizar el estado en Empresas.');
         }
 
         return res.status(201).json({ 
