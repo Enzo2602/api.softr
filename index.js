@@ -198,6 +198,10 @@ app.get('/api/get-account-summary', async (req, res) => {
   }
 });
 
+// Endpoint para crear una nueva oferta de empleo
+// La lógica completa, incluyendo chequeo de empresa, suscripción y creación de oferta, está en jobPostings.js
+app.post('/api/jobPostings', createJobPosting);
+
 /**
  * Endpoint: /api/submit-job-posting
  * Query Params: companyId (RECORD_ID de la empresa en Airtable)
