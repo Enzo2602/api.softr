@@ -329,4 +329,4 @@ async function getSubscriptionStatus(companyId) {
     }
 }
 
-module.exports = { createJobPosting };
+module.exports = createJobPosting;
