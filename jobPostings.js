@@ -100,12 +100,18 @@ async function createJobPosting(req, res) {
     }
 
     const { 
-        puestoVacante, areaPuesto, nivelExperiencia, modalidadTrabajo, 
-        pais, provincia, localidad, tipoContrato, rangoSalarial, 
-        descripcionPuesto 
-    } = req.body;
+        puestoVacante, areaPuesto, nivelExperiencia, modalidadTrabajo, pais, provincia, localidad, tipoContrato, rangoSalarial, descripcionPuesto, beneficios, nombreEmpresaVisible, emailNotificaciones, empresaId } = req.body;
 
+    // Validate that empresaId is provided, as it's crucial for subscription checking
+    // empresaId from req.body will be used for subscription logic after fetching the company record.
+    // companyRecordId from req.query.companyId is used to fetch the company record itself.
     const companyRecordId = req.query.companyId; 
+    const empresaIdFromBody = req.body.empresaId; // Let's keep this distinct for clarity
+
+    if (!empresaIdFromBody) {
+        console.error('Error: empresaId is missing in the request body.');
+        return res.status(400).json({ error: 'Company ID (empresaId from body) is required for subscription logic.' });
+    } 
 
     if (!companyRecordId) {
         return res.status(400).json({ error: 'Falta companyId en los parámetros de la URL.' });
@@ -123,61 +129,60 @@ async function createJobPosting(req, res) {
         }
         const empresaRecord = empresaRecords[0];
         const empresaAirtableId = empresaRecord.id;
-
         console.log('Datos de la empresa:', empresaRecord.fields);
 
-        const publicacionGratuitaUsada = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] || false;
-        const planActual = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PLAN_ACTUAL] ? empresaRecord.fields[process.env.FIELD_ID_EMPRESA_PLAN_ACTUAL][0] : null;
-        const avisosPagadosDisponibles = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_AVISOS_PAGADOS_DISP] || 0;
-        const fechaVencimientoString = empresaRecord.fields[process.env.FIELD_ID_EMPRESA_FECHA_VENCIMIENTO] ? empresaRecord.fields[process.env.FIELD_ID_EMPRESA_FECHA_VENCIMIENTO][0] : null;
-        const hoy = new Date();
-        let fechaVencimiento = null;
-        if (fechaVencimientoString) {
-            fechaVencimiento = new Date(fechaVencimientoString);
+        // Asegurarnos que el empresaId de body (para lógica de suscripción) y el recordId de la empresa consultada coincidan
+        // o que se use consistentemente el empresaAirtableId (RECORD_ID() de la empresa)
+        if (empresaIdFromBody !== empresaAirtableId) {
+            // Esta situación podría ocurrir si el ID en el body es diferente al ID en la URL query param.
+            // Para la lógica de suscripción y actualización de 'Empresas', usaremos empresaAirtableId, que es el RECORD_ID() verificado.
+            console.warn(`[createJobPosting] Discrepancia: empresaId en body ('${empresaIdFromBody}') es diferente a empresaAirtableId ('${empresaAirtableId}'). Se usará '${empresaAirtableId}'.`);
         }
 
-        console.log(`Datos empresa: GratuitaUsada=${publicacionGratuitaUsada}, Plan=${planActual}, AvisosDisp=${avisosPagadosDisponibles}, Vencimiento=${fechaVencimientoString}`);
-
         let puedePublicar = false;
-        let tipoDePublicacionParaOferta = ''; 
-        let camposEmpresaActualizar = {};
+        let tipoDePublicacionParaOferta = 'No Determinado'; // 'Gratuita', 'PagadaSuscripcion'
+        let infoParaActualizar = {}; // Store details for what to update post-creation
+
+        // 1. Check for free post availability from 'Empresas' table
+        const publicacionGratuitaUsada = empresaRecord.get(process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA) || false;
+        console.log(`[createJobPosting] Empresa ${empresaAirtableId} - Publicación gratuita usada: ${publicacionGratuitaUsada}`);
 
         if (!publicacionGratuitaUsada) {
             puedePublicar = true;
-            tipoDePublicacionParaOferta = 'Gratis';
-            camposEmpresaActualizar[process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA] = true;
-            console.log('Permiso: Publicación gratuita disponible.');
+            tipoDePublicacionParaOferta = 'Gratuita';
+            infoParaActualizar = {
+                tabla: process.env.AIRTABLE_EMPRESAS_TABLE_ID,
+                recordId: empresaAirtableId,
+                fieldToUpdate: process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA,
+                newValue: true
+            };
+            console.log(`[createJobPosting] Permiso: Publicación gratuita disponible para empresa ${empresaAirtableId}.`);
         } else {
-            const filterFormula = `AND(
-                {${process.env.FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
-                {${process.env.FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
-                {${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
-                IS_AFTER({${process.env.FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
-            )`;
+            // 2. Free post used, check 'Suscripciones' table
+            console.log(`[createJobPosting] Publicación gratuita ya usada por ${empresaAirtableId}. Verificando suscripciones...`);
+            const subscriptionStatus = await getSubscriptionStatus(empresaAirtableId); // Usamos empresaAirtableId que es el Record ID
 
-            try {
-                const suscripcionRecords = await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
-                    filterByFormula: filterFormula,
-                    maxRecords: 1, // Solo necesitamos una suscripción válida
-                    fields: [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
-                }).firstPage();
-
-                if (suscripcionRecords && suscripcionRecords.length > 0) {
-                    const suscripcionValida = suscripcionRecords[0];
-                    const avisosUsadosActual = suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
-                    puedePublicar = true;
-                    tipoDePublicacionParaOferta = 'Pagada';
-                    console.log(`Permiso: Publicación pagada disponible. Avisos restantes: ${suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES)}`);
-                }
-            } catch (error) {
-                console.error('Error buscando suscripción activa:', error);
-                // No bloqueamos la respuesta aquí, simplemente no podrá publicar pagado
+            if (subscriptionStatus.canPublish) {
+                puedePublicar = true;
+                tipoDePublicacionParaOferta = 'PagadaSuscripcion';
+                infoParaActualizar = {
+                    tabla: process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID,
+                    recordId: subscriptionStatus.subscriptionRecordId,
+                    fieldToUpdate: process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS,
+                    newValue: subscriptionStatus.currentAdsUsed + 1
+                };
+                console.log(`[createJobPosting] Permiso: Publicación por suscripción disponible. ID Suscripcion: ${subscriptionStatus.subscriptionRecordId}, Nuevo conteo de avisos usados: ${subscriptionStatus.currentAdsUsed + 1}`);
+            } else {
+                console.warn(`[createJobPosting] Empresa ${empresaAirtableId} no puede publicar: ${subscriptionStatus.message}`);
+                return res.status(402).json({ error: subscriptionStatus.message || 'No tiene una publicación gratuita disponible ni una suscripción activa con avisos restantes.' });
             }
         }
 
-        if (!puedePublicar) {
-            return res.status(403).json({ error: 'No tienes permisos suficientes para publicar esta oferta.' });
+        if (!puedePublicar) { // Should not be reached if logic above is correct, but as a safeguard
+            console.error("[createJobPosting] Error lógico: No se determinó el estado de publicación.");
+            return res.status(500).json({ error: 'Error interno al determinar el permiso de publicación.' });
         }
+        console.log(`[createJobPosting] Tipo de publicación determinado: ${tipoDePublicacionParaOferta}`);
 
         const ofertaDataAirtable = {
             [process.env.FIELD_ID_PUESTO_VACANTE]: puestoVacante, // Campo obligatorio o de identificación
@@ -213,52 +218,30 @@ async function createJobPosting(req, res) {
         const nuevaOfertaCreada = nuevasOfertas[0];
         console.log('Oferta creada:', nuevaOfertaCreada.id);
 
-        if (tipoDePublicacionParaOferta === 'Gratis' && Object.keys(camposEmpresaActualizar).length > 0) {
-            console.log(`Actualizando empresa ${empresaAirtableId} con campos:`, camposEmpresaActualizar);
-            await base(process.env.AIRTABLE_EMPRESAS_TABLE_ID).update([
-                { id: empresaAirtableId, fields: camposEmpresaActualizar }
-            ]);
-            console.log('Empresa actualizada por publicación gratuita.');
-        }
-
-        if (tipoDePublicacionParaOferta === 'Pagada') {
-            const filterFormula = `AND(
-                {${process.env.FIELD_ID_SUSCRIPCIONES_ID_EMPRESAS}} = '${companyRecordId}',
-                {${process.env.FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
-                {${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_RESTANTES}} > 0,
-                IS_AFTER({${process.env.FIELD_ID_SUSCRIPCIONES_FECHA_EXPIRACION}}, TODAY())
-            )`;
-
+        // Actualizar la tabla correspondiente ('Empresas' o 'Suscripciones')
+        if (tipoDePublicacionParaOferta === 'PagadaSuscripcion' && infoParaActualizar.tabla && infoParaActualizar.recordId) {
             try {
-                const suscripcionRecords = await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).select({
-                    filterByFormula: filterFormula,
-                    maxRecords: 1, // Solo necesitamos una suscripción válida
-                    fields: [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS] // Solo necesitamos el ID y los avisos usados
-                }).firstPage();
-
-                if (suscripcionRecords && suscripcionRecords.length > 0) {
-                    const suscripcionValida = suscripcionRecords[0];
-                    const avisosUsadosActual = suscripcionValida.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
-                    const nuevosAvisosUsados = avisosUsadosActual + 1;
-
-                    await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID).update([
-                        {
-                            id: suscripcionValida.id,
-                            fields: {
-                                [process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS]: nuevosAvisosUsados
-                            }
+                console.log(`[createJobPosting] Actualizando tabla: ${infoParaActualizar.tabla}, Record ID: ${infoParaActualizar.recordId}, Campo: ${infoParaActualizar.fieldToUpdate}, Nuevo Valor: ${infoParaActualizar.newValue}`);
+                await base(infoParaActualizar.tabla).update([
+                    {
+                        id: infoParaActualizar.recordId,
+                        fields: {
+                            [infoParaActualizar.fieldToUpdate]: infoParaActualizar.newValue
                         }
-                    ]);
-                    console.log(`Suscripción ${suscripcionValida.id} actualizada. Avisos usados: ${nuevosAvisosUsados}`);
-                }
-            } catch (suscripcionError) {
-                console.error(`Error al actualizar la suscripción:`, suscripcionError);
+                    }
+                ]);
+                console.log(`[createJobPosting] Actualización exitosa para ${tipoDePublicacionParaOferta}.`);
+            } catch (updateError) {
+                console.error(`[createJobPosting] Error al actualizar la tabla ${infoParaActualizar.tabla} para el record ${infoParaActualizar.recordId}:`, updateError);
+                // La oferta ya fue creada. Se loguea el fallo de actualización, pero se continúa para enviar respuesta de éxito.
             }
+        } else if (tipoDePublicacionParaOferta === 'Gratuita') {
+            console.log(`[createJobPosting] Publicación gratuita utilizada. La actualización del estado en 'Empresas' es manejada por automatización en Airtable.`);
         }
 
         return res.status(201).json({ 
-            message: 'Oferta creada exitosamente.', 
-            data: nuevaOfertaCreada 
+            message: `Oferta de empleo creada con éxito (${tipoDePublicacionParaOferta}).`, 
+            recordId: nuevaOfertaCreada.id 
         });
 
     } catch (error) {
@@ -278,6 +261,71 @@ async function createJobPosting(req, res) {
             }
         }
         return res.status(statusCode).json({ error: errorMessage, details: error.toString() });
+    }
+}
+
+async function getSubscriptionStatus(companyId) {
+    console.log(`[getSubscriptionStatus] Called for companyId: ${companyId}`);
+
+    // Ensure required environment variables for subscriptions are loaded
+    const requiredSubscriptionEnvVars = [
+        'AIRTABLE_API_KEY',
+        'AIRTABLE_BASE_ID',
+        'AIRTABLE_SUSCRIPCIONES_TABLE_ID',
+        'FIELD_ID_SUSCRIPCIONES_EMPRESA_LINK',
+        'FIELD_ID_SUSCRIPCIONES_ESTADO',
+        'FIELD_ID_SUSCRIPCIONES_FECHA_PAGO',
+        'FIELD_ID_SUSCRIPCIONES_CANTIDAD_COMPRADOS',
+        'FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS',
+    ];
+    const missingSubscriptionEnvVars = requiredSubscriptionEnvVars.filter(envVar => !process.env[envVar]);
+    if (missingSubscriptionEnvVars.length > 0) {
+        console.error('[getSubscriptionStatus] Missing required environment variables for subscriptions:', missingSubscriptionEnvVars.join(', '));
+        return { canPublish: false, message: `Server configuration error: Missing subscription environment variables.` };
+    }
+
+    const formula = `AND(
+        {${process.env.FIELD_ID_SUSCRIPCIONES_EMPRESA_LINK}} = '${companyId}',
+        {${process.env.FIELD_ID_SUSCRIPCIONES_ESTADO}} = 'Activa',
+        ({${process.env.FIELD_ID_SUSCRIPCIONES_CANTIDAD_COMPRADOS}} - IF({${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS}}, {${process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS}}, 0)) > 0
+    )`;
+    // Using IF to default Avisos Usados to 0 if it's blank/null, crucial for the formula.
+
+    console.log(`[getSubscriptionStatus] Airtable query formula: ${formula}`);
+
+    try {
+        const records = await base(process.env.AIRTABLE_SUSCRIPCIONES_TABLE_ID)
+            .select({
+                filterByFormula: formula,
+                sort: [{ field: process.env.FIELD_ID_SUSCRIPCIONES_FECHA_PAGO, direction: 'desc' }],
+                maxRecords: 1, // We only need the most recent, active subscription with posts
+                fields: [ // Explicitly request fields needed to reduce data transfer
+                    process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS,
+                    process.env.FIELD_ID_SUSCRIPCIONES_CANTIDAD_COMPRADOS, // For logging/debugging if needed
+                    process.env.FIELD_ID_SUSCRIPCIONES_PLAN // For context if needed
+                ]
+            })
+            .firstPage();
+
+        if (records.length === 0) {
+            console.warn(`[getSubscriptionStatus] No active subscription found for company ${companyId} with available posts.`);
+            return { canPublish: false, message: 'No active subscription found with available job posts.' };
+        }
+
+        const subscription = records[0];
+        const currentAdsUsed = subscription.get(process.env.FIELD_ID_SUSCRIPCIONES_AVISOS_USADOS) || 0;
+        // const totalAdsBought = subscription.get(process.env.FIELD_ID_SUSCRIPCIONES_CANTIDAD_COMPRADOS) || 0;
+        // const plan = subscription.get(process.env.FIELD_ID_SUSCRIPCIONES_PLAN);
+        // console.log(`[getSubscriptionStatus] Found subscription: ID=${subscription.id}, Plan=${plan}, AdsBought=${totalAdsBought}, AdsUsed=${currentAdsUsed}`);
+
+        return {
+            canPublish: true,
+            subscriptionRecordId: subscription.id,
+            currentAdsUsed: currentAdsUsed,
+        };
+    } catch (error) {
+        console.error('[getSubscriptionStatus] Error querying Airtable for subscription:', error);
+        return { canPublish: false, message: `Error checking subscription status: ${error.message}` };
     }
 }
 
