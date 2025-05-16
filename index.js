@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const Airtable = require('airtable');
 require('dotenv').config(); // Carga variables de entorno desde .env (para desarrollo local)
-const { createJobPosting } = require('./jobPostings'); // Importar la nueva función
+const createJobPosting = require('./jobPostings'); // Importar la nueva función
 
 // Inicializar aplicación Express
 const app = express();
