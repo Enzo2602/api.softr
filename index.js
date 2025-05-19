@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const Airtable = require('airtable');
 require('dotenv').config(); // Carga variables de entorno desde .env (para desarrollo local)
-const createJobPosting = require('./jobPostings'); // Importar la nueva función
+const { createJobPosting, publicarAvisoGratis } = require('./jobPostings'); // Importar funciones
 
 // Inicializar aplicación Express
 const app = express();
@@ -194,9 +194,14 @@ app.get('/api/get-account-summary', async (req, res) => {
 
   } catch (error) {
     console.error(`DIAGNOSTICO - Error en /api/get-account-summary para companyId ${companyId}:`, error);
-    res.status(500).json({ error: 'Error interno del servidor al obtener resumen de cuenta.' });
+    return res.status(500).json({ error: 'Error interno del servidor al verificar el estado.' });
   }
 });
+
+// Endpoint para publicar un aviso gratuito
+// Requiere companyId en la URL query: /api/publicarAvisoGratis?companyId=RECORD_ID
+// y los datos de la oferta en el body.
+app.post('/api/publicarAvisoGratis', publicarAvisoGratis);
 
 // Endpoint para crear una nueva oferta de empleo
 // La lógica completa, incluyendo chequeo de empresa, suscripción y creación de oferta, está en jobPostings.js

@@ -346,4 +346,141 @@ async function getSubscriptionStatus(companyId) {
     }
 }
 
-module.exports = createJobPosting;
+async function publicarAvisoGratis(req, res) {
+    console.log('[publicarAvisoGratis] Solicitud para publicar aviso gratuito:', req.body);
+    console.log('[publicarAvisoGratis] Company ID de query params:', req.query.companyId);
+
+    try {
+        getAirtableBase(); 
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+
+    const requiredEnvVarsForFreePost = {
+        AIRTABLE_EMPRESAS_TABLE_ID: process.env.AIRTABLE_EMPRESAS_TABLE_ID,
+        AIRTABLE_OFERTAS_TABLE_ID: process.env.AIRTABLE_OFERTAS_TABLE_ID,
+        FIELD_ID_PUESTO_VACANTE: process.env.FIELD_ID_PUESTO_VACANTE,
+        FIELD_ID_EMPRESA_EN_OFERTAS: process.env.FIELD_ID_EMPRESA_EN_OFERTAS,
+        FIELD_ID_TIPO_PUBLICACION_OFERTA: process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA,
+        FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA: process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA,
+    };
+
+    const missingVars = Object.entries(requiredEnvVarsForFreePost)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+    if (missingVars.length > 0) {
+        console.error('[publicarAvisoGratis] Error: Faltan variables de entorno esenciales:', missingVars.join(', '));
+        return res.status(500).json({
+            error: 'Configuración del servidor incompleta para aviso gratuito.',
+            missing_variables: missingVars
+        });
+    }
+
+    const companyRecordId = req.query.companyId;
+    if (!companyRecordId) {
+        return res.status(400).json({ error: '[publicarAvisoGratis] Falta companyId en los parámetros de la URL.' });
+    }
+
+    const {
+        puestoVacante,
+        areaPuesto,
+        nivelExperiencia,
+        modalidadTrabajo,
+        pais,
+        provincia,
+        localidad,
+        tipoContrato,
+        rangoSalarial,
+        descripcionPuesto
+        // ...otros campos que vengan del formulario de Softr para la oferta
+    } = req.body;
+
+    if (!puestoVacante) {
+        return res.status(400).json({ error: '[publicarAvisoGratis] El campo puestoVacante es obligatorio.' });
+    }
+
+    try {
+        console.log(`[publicarAvisoGratis] Verificando empresa ID: ${companyRecordId} en tabla ${process.env.AIRTABLE_EMPRESAS_TABLE_ID}`);
+        const empresaRecords = await base(process.env.AIRTABLE_EMPRESAS_TABLE_ID).select({
+            filterByFormula: `RECORD_ID() = '${companyRecordId}'`,
+            fields: [process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA], // Solo necesitamos este campo
+            maxRecords: 1
+        }).firstPage();
+
+        if (!empresaRecords || empresaRecords.length === 0) {
+            return res.status(404).json({ error: '[publicarAvisoGratis] Empresa no encontrada.' });
+        }
+        const empresaRecord = empresaRecords[0];
+        const empresaAirtableId = empresaRecord.id;
+
+        const publicacionGratuitaUsada = empresaRecord.get(process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA) || false;
+        console.log(`[publicarAvisoGratis] Empresa ${empresaAirtableId} - Publicación gratuita usada: ${publicacionGratuitaUsada}`);
+
+        if (publicacionGratuitaUsada) {
+            return res.status(403).json({ error: 'Ya utilizaste tu aviso gratuito.' });
+        }
+
+        // Proceder a crear la oferta gratuita
+        const ofertaDataAirtable = {
+            [process.env.FIELD_ID_PUESTO_VACANTE]: puestoVacante,
+            [process.env.FIELD_ID_EMPRESA_EN_OFERTAS]: [empresaAirtableId],
+            [process.env.FIELD_ID_TIPO_PUBLICACION_OFERTA]: 'Gratuita' // Marcar como Gratuita
+        };
+        // Añadir otros campos opcionales si vienen en el body
+        if (pais) ofertaDataAirtable[process.env.FIELD_ID_PAIS] = pais;
+        if (areaPuesto) ofertaDataAirtable[process.env.FIELD_ID_AREA_PUESTO] = areaPuesto;
+        if (nivelExperiencia) ofertaDataAirtable[process.env.FIELD_ID_NIVEL_EXPERIENCIA] = Array.isArray(nivelExperiencia) ? nivelExperiencia : [nivelExperiencia];
+        if (modalidadTrabajo) ofertaDataAirtable[process.env.FIELD_ID_MODALIDAD_TRABAJO] = Array.isArray(modalidadTrabajo) ? modalidadTrabajo : [modalidadTrabajo];
+        if (provincia && provincia.trim() !== '' && provincia !== 'No aplica para este país') ofertaDataAirtable[process.env.FIELD_ID_PROVINCIA] = provincia;
+        if (localidad) ofertaDataAirtable[process.env.FIELD_ID_UBICACION] = localidad;
+        if (tipoContrato) ofertaDataAirtable[process.env.FIELD_ID_TIPO_CONTRATO] = tipoContrato;
+        if (descripcionPuesto) ofertaDataAirtable[process.env.FIELD_ID_DESCRIPCION_PUESTO] = descripcionPuesto;
+        if (rangoSalarial) ofertaDataAirtable[process.env.FIELD_ID_RANGO_SALARIAL] = rangoSalarial;
+
+        console.log('[publicarAvisoGratis] Creando oferta gratuita en Airtable con datos:', JSON.stringify(ofertaDataAirtable));
+        const nuevasOfertas = await base(process.env.AIRTABLE_OFERTAS_TABLE_ID).create([
+            { fields: ofertaDataAirtable }
+        ]);
+
+        if (!nuevasOfertas || nuevasOfertas.length === 0) {
+            throw new Error('[publicarAvisoGratis] La creación de la oferta en Airtable no devolvió resultados.');
+        }
+        const nuevaOfertaCreada = nuevasOfertas[0];
+        console.log('[publicarAvisoGratis] Oferta gratuita creada:', nuevaOfertaCreada.id);
+
+        // Marcar la publicación gratuita como usada
+        console.log(`[publicarAvisoGratis] Actualizando estado de publicación gratuita para empresa ${empresaAirtableId}`);
+        await base(process.env.AIRTABLE_EMPRESAS_TABLE_ID).update([
+            {
+                id: empresaAirtableId,
+                fields: {
+                    [process.env.FIELD_ID_EMPRESA_PUBLI_GRATUITA_USADA]: true
+                }
+            }
+        ]);
+        console.log('[publicarAvisoGratis] Estado de publicación gratuita actualizado.');
+
+        return res.status(201).json({ 
+            message: 'Aviso gratuito publicado con éxito.', 
+            recordId: nuevaOfertaCreada.id 
+        });
+
+    } catch (error) {
+        console.error('[publicarAvisoGratis] Error detallado:', error);
+        // Manejo de errores similar a createJobPosting
+        let statusCode = 500;
+        let errorMessage = 'Error interno del servidor al procesar el aviso gratuito.';
+        if (error.message) {
+            if (error.message.includes('Authentication required')) errorMessage = 'Error de autenticación con Airtable.';
+            else if (error.message.includes('NOT_FOUND')) { errorMessage = 'No se encontró la tabla o base en Airtable.'; statusCode = 404; }
+            else if (error.statusCode) { statusCode = error.statusCode; errorMessage = error.message; }
+        }
+        return res.status(statusCode).json({ error: errorMessage, details: error.toString() });
+    }
+}
+
+module.exports = {
+    createJobPosting,
+    publicarAvisoGratis
+};
