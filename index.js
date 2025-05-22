@@ -182,11 +182,16 @@ app.get('/api/get-account-summary', async (req, res) => {
       }
     }
 
+    const canPublishFree = !freePublicationUsed;
+    const canPublishPaid = paidCredits > 0;
+
     const summaryResponse = {
       planName: planName,
       nextPaymentDate: nextPaymentDateFormatted,
       freePublicationUsed: freePublicationUsed,
       availableCredits: paidCredits, // Cambiado de 'paidCredits' para más claridad en el frontend
+      canPublishFree: canPublishFree,
+      canPublishPaid: canPublishPaid
     };
 
     console.log(`DIAGNOSTICO - Get Account Summary para ${companyId}:`, JSON.stringify(summaryResponse));
