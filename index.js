@@ -145,7 +145,7 @@ app.get('/api/get-account-summary', async (req, res) => {
     const records = await base(AIRTABLE_EMPRESAS_TABLE_NAME).select({
       filterByFormula: `{RECORD ID} = '${companyId}'`, // Usar RECORD_ID() o el nombre del campo Primary
       fields: [
-        'Plan (from Suscripcion Activa)', 
+        'Plan Actual', 
         'Fecha Expiración (from Suscripcion Activa)',
         'PublicacionGratuitaUtilizada',
         'AvisosPagadosDisponibles'
@@ -159,27 +159,23 @@ app.get('/api/get-account-summary', async (req, res) => {
     }
 
     const empresa = records[0].fields;
-    const planName = empresa['Plan (from Suscripcion Activa)'] ? empresa['Plan (from Suscripcion Activa)'][0] : 'No especificado'; // Lookup devuelve un array
+
+    const planName = empresa['Plan Actual'] || 'No especificado'; 
     const rawExpiryDate = empresa['Fecha Expiración (from Suscripcion Activa)'];
     const freePublicationUsed = empresa['PublicacionGratuitaUtilizada'] || false;
     const paidCredits = empresa['AvisosPagadosDisponibles'] || 0;
     
     let nextPaymentDateFormatted = 'No especificado';
     if (rawExpiryDate) {
-      try {
-        // Airtable devuelve fechas en formato ISO (ej: "2024-07-15T00:00:00.000Z" o solo "2024-07-15")
-        // Nos aseguramos de tomar solo la parte de la fecha YYYY-MM-DD
-        const datePart = rawExpiryDate.toString().split('T')[0];
-        const [year, month, day] = datePart.split('-');
-        if (year && month && day) {
-            nextPaymentDateFormatted = `${day}/${month}/${year}`; // Formato DD/MM/YYYY
-        } else {
-            nextPaymentDateFormatted = datePart; // Si no se puede parsear, mostrar como viene
+        const date = new Date(rawExpiryDate);
+        if (!isNaN(date.getTime())) { // Check if date is valid
+            nextPaymentDateFormatted = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
         }
-      } catch (dateError) {
-        console.warn(`DIAGNOSTICO - Error formateando fecha ${rawExpiryDate}:`, dateError);
-        nextPaymentDateFormatted = rawExpiryDate.toString(); // Devolver el original si hay error
-      }
+    }
+
+    // Si el plan es "Free", la fecha de pago no aplica
+    if (planName === "Free") {
+        nextPaymentDateFormatted = "No aplica";
     }
 
     const canPublishFree = !freePublicationUsed;
