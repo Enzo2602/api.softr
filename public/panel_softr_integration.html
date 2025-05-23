@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control para Softr</title>
+    <!-- CSS PARA SOFTR CUSTOM CODE - INICIO -->
+    <!-- Copia todo el contenido entre las etiquetas <style> y </style> -->
+    <!-- y pégalo en la sección CSS del bloque de Custom Code de Softr, -->
+    <!-- O incluye estas etiquetas <style> completas en la sección HTML de Softr. -->
+    <style>
+        body { font-family: Arial, sans-serif; /* Softr usualmente maneja esto, pero se incluye por completitud */ }
+        #panel-control-publicaciones-softr {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #panel-control-publicaciones-softr h2 { text-align: center; color: #333; margin-top: 0; }
+        #panel-control-publicaciones-softr h3 { color: #555; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        #loading-message-pnl-softr, #error-message-pnl-softr {
+            text-align: center; padding: 20px; color: #777;
+        }
+        #error-message-pnl-softr { color: red; background-color: #ffebee; border: 1px solid #ef9a9a; border-radius: 4px; display: none; }
+        #account-summary-section-pnl-softr .summary-item-softr {
+            background-color: #f9f9f9; padding: 15px; border-radius: 5px;
+        }
+        #account-summary-section-pnl-softr p { margin: 8px 0; }
+        #actions-section-pnl-softr { text-align: center; }
+        #actions-section-pnl-softr button {
+            padding: 12px 18px; border: none; border-radius: 5px; cursor: pointer; margin: 5px 10px; font-size: 16px; color: white;
+        }
+        /* Los colores específicos de los botones ya están en línea, pero si quieres clases: */
+        /* #btn-publicar-gratis-pnl-softr { background-color: #4B917B; } */
+        /* #btn-publicar-pago-pnl-softr { background-color: #4B917B; } */
+        /* #btn-subir-plan-pnl-softr { background-color: #F97316; } */
+    </style>
+    <!-- CSS PARA SOFTR CUSTOM CODE - FIN -->
+</head>
+<body>
+
+    <!-- HTML PARA SOFTR CUSTOM CODE - INICIO -->
+    <!-- Copia desde aquí... -->
+    <div id="panel-control-publicaciones-softr">
+        <h2 style="text-align: center; color: #333; margin-top: 0;">Panel de Control</h2>
+
+        <div id="loading-message-pnl-softr" style="text-align: center; padding: 20px; color: #777;">Cargando datos de tu cuenta...</div>
+        <div id="error-message-pnl-softr"></div>
+
+        <div id="account-summary-section-pnl-softr" style="display: none; margin-bottom: 20px;">
+            <h3>Resumen de tu Cuenta</h3>
+            <div class="summary-item-softr">
+                <p><strong>Plan Actual:</strong> <span id="plan-name-pnl-softr">-</span></p>
+                <p><strong>Próxima Fecha de Pago/Vencimiento:</strong> <span id="next-payment-date-pnl-softr">-</span></p>
+                <p><strong>Publicación Gratuita Disponible:</strong> <span id="free-publication-status-pnl-softr">-</span></p>
+                <p><strong>Publicaciones Pagas Disponibles:</strong> <span id="paid-credits-pnl-softr">-</span></p>
+            </div>
+        </div>
+
+        <div id="actions-section-pnl-softr" style="text-align: center; display: none;">
+            <button id="btn-publicar-gratis-pnl-softr" style="display: none; background-color: #4B917B; color: white;">Publicar Aviso Gratuito</button>
+            <button id="btn-publicar-pago-pnl-softr" style="display: none; background-color: #4B917B; color: white;">Publicar Aviso Pago</button>
+            <button id="btn-subir-plan-pnl-softr" style="background-color: #F97316; color: white;">Subir mi Plan</button>
+        </div>
+    </div>
+    <!-- ...hasta aquí en la sección HTML del bloque de Custom Code de Softr. -->
+    <!-- HTML PARA SOFTR CUSTOM CODE - FIN -->
+
+
+    <!-- JAVASCRIPT PARA SOFTR CUSTOM CODE - INICIO -->
+    <!-- Copia todo el contenido entre las etiquetas <script> y </script> -->
+    <!-- y pégalo en la sección JAVASCRIPT (FOOTER) del bloque de Custom Code de Softr. -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Panel de Control (SOFTR): Iniciando script...");
+
+            const loadingMessageEl = document.getElementById('loading-message-pnl-softr');
+            const errorMessageEl = document.getElementById('error-message-pnl-softr');
+            const accountSummarySectionEl = document.getElementById('account-summary-section-pnl-softr');
+            const actionsSectionEl = document.getElementById('actions-section-pnl-softr');
+
+            const planNameEl = document.getElementById('plan-name-pnl-softr');
+            const nextPaymentDateEl = document.getElementById('next-payment-date-pnl-softr');
+            const freePublicationStatusEl = document.getElementById('free-publication-status-pnl-softr');
+            const paidCreditsEl = document.getElementById('paid-credits-pnl-softr');
+
+            const btnPublicarGratis = document.getElementById('btn-publicar-gratis-pnl-softr');
+            const btnPublicarPago = document.getElementById('btn-publicar-pago-pnl-softr');
+            const btnSubirPlan = document.getElementById('btn-subir-plan-pnl-softr');
+
+            // --- CONFIGURACIÓN IMPORTANTE --- 
+            // Asegúrate de que estas URLs sean las correctas para tu aplicación Softr.
+            // Si tus páginas en Softr tienen otras rutas, actualízalas aquí.
+            const urlFormularioPublicacion = 'https://api-softr-git-main-globalciti-projects-bed74aa2.vercel.app/formulario-publicar'; 
+            const urlPlanesCheckout = '/planescheckout';     
+            // Esta debe ser la URL base de tu API desplegada en Vercel.
+            const vercelApiUrlBase = 'https://api-softr-git-main-globalciti-projects-bed74aa2.vercel.app'; 
+            // --- FIN CONFIGURACIÓN IMPORTANTE ---
+
+            function showLoadingState(isLoading) {
+                if (loadingMessageEl) loadingMessageEl.style.display = isLoading ? 'block' : 'none';
+                if (isLoading) {
+                    if (errorMessageEl) {
+                        errorMessageEl.style.display = 'none';
+                        errorMessageEl.textContent = '';
+                    }
+                    if (accountSummarySectionEl) accountSummarySectionEl.style.display = 'none';
+                    if (actionsSectionEl) actionsSectionEl.style.display = 'none';
+                }
+            }
+
+            function showError(message) {
+                showLoadingState(false);
+                if (errorMessageEl) {
+                    errorMessageEl.textContent = 'Error: ' + message;
+                    errorMessageEl.style.display = 'block';
+                }
+                console.error("Panel de Control (SOFTR): Error -", message);
+            }
+
+            function showContent() {
+                showLoadingState(false);
+                if (errorMessageEl) errorMessageEl.style.display = 'none';
+                if (accountSummarySectionEl) accountSummarySectionEl.style.display = 'block';
+                if (actionsSectionEl) actionsSectionEl.style.display = 'block';
+            }
+
+            async function fetchAccountStatus(companyId) {
+                console.log("Panel de Control (SOFTR): Obteniendo estado de cuenta para companyId:", companyId);
+                if (!companyId) {
+                    showError("No se pudo obtener el ID de la empresa del usuario logueado.");
+                    // Podrías ocultar todo el panel si no hay companyId
+                    // document.getElementById('panel-control-publicaciones-softr').style.display = 'none';
+                    return;
+                }
+
+                const apiUrl = `${vercelApiUrlBase}/api/get-account-summary?companyId=${companyId}`;
+                console.log("Panel de Control (SOFTR): Llamando a API:", apiUrl);
+                showLoadingState(true);
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ message: `Error HTTP ${response.status} - ${response.statusText}` }));
+                        throw new Error(errorData.error || errorData.message || `Error HTTP ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log("Panel de Control (SOFTR): Datos recibidos de API:", data);
+                    updatePanelUI(data, companyId);
+                    showContent();
+                } catch (error) {
+                    console.error("Panel de Control (SOFTR): Excepción al llamar a API o procesar respuesta:", error);
+                    showError(error.message || "No se pudo conectar con el servidor para obtener los datos de la cuenta.");
+                }
+            }
+
+            function updatePanelUI(data, companyId) {
+                console.log("Panel de Control (SOFTR): Actualizando UI con datos:", data);
+                if (planNameEl) planNameEl.textContent = data.planName || 'No especificado';
+                if (nextPaymentDateEl) nextPaymentDateEl.textContent = data.nextPaymentDate || 'No especificado';
+                if (freePublicationStatusEl) freePublicationStatusEl.textContent = data.canPublishFree ? 'Sí' : 'Ya utilizada';
+                
+                let credits = 0;
+                if (Array.isArray(data.availableCredits) && data.availableCredits.length > 0) {
+                    credits = parseInt(data.availableCredits[0], 10) || 0;
+                } else if (typeof data.availableCredits === 'number') {
+                    credits = data.availableCredits;
+                }
+                if (paidCreditsEl) paidCreditsEl.textContent = credits;
+
+                if (btnPublicarGratis) {
+                    if (data.canPublishFree) {
+                        btnPublicarGratis.style.display = 'inline-block';
+                        btnPublicarGratis.onclick = function() {
+                            console.log("Panel de Control (SOFTR): Clic en Publicar Aviso Gratuito.");
+                            // Para Softr, la redirección es directa:
+                            window.location.href = `${urlFormularioPublicacion}?companyId=${companyId}&tipoPublicacion=gratuita`;
+                        };
+                    } else {
+                        btnPublicarGratis.style.display = 'none';
+                    }
+                }
+
+                if (btnPublicarPago) {
+                    if (data.canPublishPaid) {
+                        btnPublicarPago.style.display = 'inline-block';
+                        btnPublicarPago.onclick = function() {
+                            console.log("Panel de Control (SOFTR): Clic en Publicar Aviso Pago.");
+                            window.location.href = `${urlFormularioPublicacion}?companyId=${companyId}&tipoPublicacion=paga`;
+                        };
+                    } else {
+                        btnPublicarPago.style.display = 'none';
+                    }
+                }
+                
+                if (btnSubirPlan) {
+                    btnSubirPlan.onclick = function() {
+                        console.log("Panel de Control (SOFTR): Clic en Subir mi Plan.");
+                        window.location.href = `${urlPlanesCheckout}?companyId=${companyId}`;
+                    };
+                }
+            }
+
+            // --- LÓGICA DE INICIO PARA SOFTR --- 
+            // Obtener el companyId del usuario logueado en Softr.
+            // ¡IMPORTANTE! Verifica que 'window.logged_in_user.airtable_record_id' 
+            // sea la forma correcta de obtener el ID de la empresa en TU configuración de Softr.
+            // Puede ser 'window.logged_in_user.record_id' o un campo específico como 
+            // 'window.logged_in_user["ID Empresa"]' si lo tienes mapeado así.
+            let userCompanyId = null;
+            if (window.logged_in_user && window.logged_in_user.airtable_record_id) {
+                userCompanyId = window.logged_in_user.airtable_record_id;
+                console.log("Panel de Control (SOFTR): Company ID obtenido de window.logged_in_user.airtable_record_id:", userCompanyId);
+            } else if (window.logged_in_user && window.logged_in_user.record_id) { // Intento alternativo
+                 userCompanyId = window.logged_in_user.record_id;
+                 console.log("Panel de Control (SOFTR): Company ID obtenido de window.logged_in_user.record_id:", userCompanyId);
+            } else {
+                console.warn("Panel de Control (SOFTR): No se pudo obtener 'airtable_record_id' o 'record_id' de window.logged_in_user.");
+                // Podrías intentar buscar en otros campos comunes si conoces tu estructura de datos de Softr
+                // Ejemplo: if (window.logged_in_user && window.logged_in_user['ID de Empresa']) {
+                // userCompanyId = window.logged_in_user['ID de Empresa'];
+                // }
+            }
+
+            if (userCompanyId) {
+                fetchAccountStatus(userCompanyId);
+            } else {
+                showError("No se pudo determinar el ID de la empresa para el usuario actual. Asegúrate de estar logueado y que la configuración de Softr sea correcta.");
+                // Ocultar el panel si no hay ID
+                const panelElement = document.getElementById('panel-control-publicaciones-softr');
+                if (panelElement) panelElement.style.display = 'none';
+            }
+        });
+    </script>
+    <!-- JAVASCRIPT PARA SOFTR CUSTOM CODE - FIN -->
+
+</body>
+</html>
