@@ -301,22 +301,28 @@
                 // Obtener companyId de la URL (simulado aquí, deberás pasarlo realmente)
                 // Por ejemplo: si la URL es .../publicar-oferta.html?companyId=recXXXXXXXXXXXX
                 const urlParams = new URLSearchParams(window.location.search);
-                const companyId = urlParams.get('companyId');
+                const companyIdFromPageUrl = urlParams.get('companyId'); // Renombrado para claridad
 
-                if (!companyId) {
+                if (!companyIdFromPageUrl) {
                     statusMessageEl.textContent = 'Error: Falta el ID de la empresa. Asegúrate de que la URL sea correcta.';
                     statusMessageEl.className = 'error';
                     statusMessageEl.style.display = 'block';
                     return;
                 }
 
-                console.log('Datos a enviar:', data);
-                console.log('Company ID:', companyId);
+                // ¡AQUÍ ESTÁ EL CAMBIO IMPORTANTE!
+                // Añadimos el companyId obtenido de la URL de la página al objeto 'data' que se enviará en el body.
+                // La API espera este campo como 'empresaId' en el body.
+                data.empresaId = companyIdFromPageUrl;
+
+                console.log('Datos a enviar (body):', data);
+                // El companyId para la URL de la API ya se maneja en la construcción de API_URL
+                // console.log('Company ID (para API query):', companyIdFromPageUrl);
 
                 // --- INICIO DE SIMULACIÓN DE ENVÍO (REEMPLAZAR CON LLAMADA REAL A LA API) ---
                 // Aquí deberías hacer la llamada fetch a tu API de Vercel
                 // Esta simulación es solo para mostrar cómo manejar la respuesta
-                const API_URL = `/api/submit-job-posting?companyId=${companyId}`; // La API está en el mismo dominio
+                const API_URL = `/api/submit-job-posting?companyId=${companyIdFromPageUrl}`; // companyId en query params
                 
                 statusMessageEl.textContent = 'Enviando publicación...';
                 statusMessageEl.className = ''; // Limpiar clases previas
